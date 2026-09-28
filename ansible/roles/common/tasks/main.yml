@@ -1,0 +1,47 @@
+---
+# ==============================================================================
+# Role: Common
+# Base package management, system tools, and UFW firewall configuration
+# ==============================================================================
+
+- name: Update apt repository cache
+  apt:
+    update_cache: yes
+    cache_valid_time: 3600
+
+- name: Install fundamental system packages
+  apt:
+    name:
+      - curl
+      - wget
+      - git
+      - vim
+      - htop
+      - ufw
+      - apt-transport-https
+      - ca-certificates
+      - software-properties-common
+      - net-tools
+    state: present
+
+- name: Allow SSH through firewall
+  ufw:
+    rule: allow
+    port: '22'
+    proto: tcp
+
+- name: Allow HTTP traffic through firewall
+  ufw:
+    rule: allow
+    port: '80'
+    proto: tcp
+
+- name: Allow API traffic through firewall
+  ufw:
+    rule: allow
+    port: '5000'
+    proto: tcp
+
+- name: Enable UFW firewall
+  ufw:
+    state: enabled

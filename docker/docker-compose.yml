@@ -1,0 +1,129 @@
+# ==============================================================================
+# Docker Compose: Full-Stack Hotel Booking System & Infrastructure Monitoring
+# Location: docker/docker-compose.yml
+# ==============================================================================
+
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: stayease-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword2026
+      MYSQL_DATABASE: stayease_db
+      MYSQL_USER: stayease_user
+      MYSQL_PASSWORD: stayease_pass_2026
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ../database/schema.sql:/docker-entrypoint-initdb.d/1-schema.sql:ro
+      - ../database/seed.sql:/docker-entrypoint-initdb.d/2-seed.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u root -prootpassword2026"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    networks:
+      - stayease-network
+
+  backend:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    container_name: stayease-backend
+    restart: unless-stopped
+    environment:
+      PORT: 5000
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USER: stayease_user
+      DB_PASSWORD: stayease_pass_2026
+      DB_NAME: stayease_db
+      USE_SQLITE_FALLBACK: "false"
+      JWT_SECRET_KEY: "production-stayease-jwt-secret-key-super-secure-32chars"
+      CORS_ORIGINS: "*"
+    ports:
+      - "5000:5000"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    networks:
+      - stayease-network
+
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+    container_name: stayease-frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "3000:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:80/"]
+      interval: 20s
+      timeout: 3s
+      retries: 3
+    networks:
+      - stayease-network
+
+  prometheus:
+    image: prom/prometheus:v2.45.0
+    container_name: stayease-prometheus
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    volumes:
+      - ../monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+    depends_on:
+      - backend
+    networks:
+      - stayease-network
+
+  grafana:
+    image: grafana/grafana:10.0.0
+    container_name: stayease-grafana
+    restart: unless-stopped
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - ../monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ../monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - prometheus
+    networks:
+      - stayease-network
+
+volumes:
+  mysql_data:
+    driver: local
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local
+
+networks:
+  stayease-network:
+    driver: bridge

@@ -1,0 +1,29 @@
+# ==============================================================================
+# Prometheus Configuration for StayEase Hotel Booking Infrastructure
+# ==============================================================================
+
+global:
+  scrape_interval: 10s
+  evaluation_interval: 10s
+  scrape_timeout: 5s
+
+scrape_configs:
+  # 1. StayEase Flask Application & Business Metrics
+  - job_name: 'hotel-booking-api'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['backend:5000', 'host.docker.internal:5000', '127.0.0.1:5000']
+        labels:
+          application: 'stayease-backend'
+          environment: 'production'
+          service: 'hotel-api'
+
+  # 2. Prometheus Self Monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # 3. Host / Node Exporter for Infrastructure CPU/Memory Metrics
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['node-exporter:9100']

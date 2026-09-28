@@ -1,0 +1,23 @@
+# ==============================================================================
+# Global Variables for Ansible Automation
+# ==============================================================================
+
+app_name: stayease
+app_root_dir: /opt/stayease
+app_repo_url: "https://github.com/stayease-org/hotel-booking-infrastructure.git"
+app_version: main
+
+# Database Settings (Provided by Terraform or Vault)
+db_host: "stayease-mysql-instance.c123456789.us-east-1.rds.amazonaws.com"
+db_port: 3306
+db_name: stayease_db
+db_user: stayease_admin
+db_password: "{{ vault_db_password | default('StayEaseSecurePass2026!') }}"
+
+# Security
+jwt_secret_key: "{{ vault_jwt_secret | default('production-stayease-jwt-secret-key-super-secure-32chars') }}"
+
+# Docker Image Registry
+docker_registry: "ghcr.io/stayease-org"
+backend_image: "ghcr.io/stayease-org/stayease-backend:latest"
+frontend_image: "ghcr.io/stayease-org/stayease-frontend:latest"

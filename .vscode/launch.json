@@ -1,0 +1,31 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "StayEase: Run Full-Stack Web App (One-Click)",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/run_local.py",
+      "console": "integratedTerminal",
+      "justMyCode": true
+    },
+    {
+      "name": "StayEase: Run Flask API Backend",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/backend/app.py",
+      "console": "integratedTerminal",
+      "cwd": "${workspaceFolder}/backend",
+      "justMyCode": true
+    },
+    {
+      "name": "StayEase: Run Automated Tests",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/backend/tests/run_tests.py",
+      "console": "integratedTerminal",
+      "cwd": "${workspaceFolder}/backend",
+      "justMyCode": true
+    }
+  ]
+}

@@ -1,0 +1,64 @@
+---
+# ==============================================================================
+# Role: App Deploy
+# Automated container pulling, environment configuration, and health validation
+# ==============================================================================
+
+- name: Create application root directory
+  file:
+    path: "{{ app_root_dir }}"
+    state: directory
+    owner: "{{ ansible_user }}"
+    group: docker
+    mode: '0755'
+
+- name: Checkout StayEase codebase repository
+  git:
+    repo: "{{ app_repo_url }}"
+    dest: "{{ app_root_dir }}"
+    version: "{{ app_version }}"
+    force: yes
+  ignore_errors: yes
+
+- name: Deploy application environment configuration (.env)
+  template:
+    src: env.j2
+    dest: "{{ app_root_dir }}/.env"
+    mode: '0600'
+  vars:
+    env_content: |
+      PORT=5000
+      DB_HOST={{ db_host }}
+      DB_PORT={{ db_port }}
+      DB_NAME={{ db_name }}
+      DB_USER={{ db_user }}
+      DB_PASSWORD={{ db_password }}
+      USE_SQLITE_FALLBACK=false
+      JWT_SECRET_KEY={{ jwt_secret_key }}
+      CORS_ORIGINS=*
+
+- name: Pull updated application containers
+  command: docker compose pull
+  args:
+    chdir: "{{ app_root_dir }}"
+  ignore_errors: yes
+
+- name: Start or update StayEase containers with Docker Compose
+  command: docker compose up -d --remove-orphans
+  args:
+    chdir: "{{ app_root_dir }}"
+
+- name: Wait for StayEase API health check endpoint to become healthy
+  uri:
+    url: "http://127.0.0.1:5000/health"
+    method: GET
+    status_code: 200
+    return_content: yes
+  register: health_result
+  until: health_result.status == 200
+  retries: 12
+  delay: 5
+
+- name: Print deployment verification result
+  debug:
+    msg: "StayEase backend confirmed healthy: {{ health_result.json.status }}"

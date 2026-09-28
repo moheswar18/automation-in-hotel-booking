@@ -1,0 +1,59 @@
+---
+# ==============================================================================
+# Role: Monitoring
+# Automated setup of Prometheus Node Exporter for infrastructure metrics
+# ==============================================================================
+
+- name: Create node_exporter user
+  user:
+    name: node_exporter
+    shell: /bin/false
+    system: yes
+
+- name: Check if node_exporter binary exists
+  stat:
+    path: /usr/local/bin/node_exporter
+  register: node_exporter_bin
+
+- name: Download and unpack Node Exporter release
+  unarchive:
+    src: "https://github.com/prometheus/node_exporter/releases/download/v1.8.1/node_exporter-1.8.1.linux-amd64.tar.gz"
+    dest: /tmp
+    remote_src: yes
+  when: not node_exporter_bin.stat.exists
+  ignore_errors: yes
+
+- name: Copy binary to /usr/local/bin
+  copy:
+    src: /tmp/node_exporter-1.8.1.linux-amd64/node_exporter
+    dest: /usr/local/bin/node_exporter
+    mode: '0755'
+    remote_src: yes
+  when: not node_exporter_bin.stat.exists
+  ignore_errors: yes
+
+- name: Create systemd service for node_exporter
+  copy:
+    dest: /etc/systemd/system/node_exporter.service
+    content: |
+      [Unit]
+      Description=Prometheus Node Exporter
+      After=network.target
+
+      [Service]
+      User=node_exporter
+      Group=node_exporter
+      Type=simple
+      ExecStart=/usr/local/bin/node_exporter
+
+      [Install]
+      WantedBy=multi-user.target
+    mode: '0644'
+
+- name: Enable and start node_exporter service
+  systemd:
+    name: node_exporter
+    state: started
+    enabled: yes
+    daemon_reload: yes
+  ignore_errors: yes

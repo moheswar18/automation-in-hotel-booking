@@ -1,0 +1,30 @@
+---
+# ==============================================================================
+# Master Ansible Playbook: StayEase Server Configuration & Deployment
+# Workflow:
+# Provision Infrastructure (Terraform) -> Configure Servers (Ansible)
+# ==============================================================================
+
+- name: Configure Common Base System and Security on All Nodes
+  hosts: all
+  become: yes
+  roles:
+    - common
+
+- name: Install Container Runtime & Orchestration
+  hosts: all
+  become: yes
+  roles:
+    - docker
+
+- name: Deploy StayEase Application Services to Cluster
+  hosts: app_servers
+  become: yes
+  roles:
+    - app_deploy
+
+- name: Configure Prometheus & Node Exporters
+  hosts: monitoring, app_servers
+  become: yes
+  roles:
+    - monitoring
